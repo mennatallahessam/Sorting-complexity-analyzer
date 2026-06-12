@@ -1,0 +1,163 @@
+/* styles.css - Premium dark mode with glassmorphism and gradient accents */
+
+/* Import Google Font */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+:root {
+  --bg-primary: #0f0f0f;
+  --bg-card: rgba(255, 255, 255, 0.08);
+  --bg-glass: rgba(255, 255, 255, 0.12);
+  --text-primary: #e0e0e0;
+  --accent-1: #ff6b6b;
+  --accent-2: #4ecdc4;
+  --gradient-start: #1e1e1e;
+  --gradient-end: #3a3a3a;
+  --border-radius: 12px;
+  --transition-speed: 0.3s;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', sans-serif;
+}
+
+body {
+  background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+  color: var(--text-primary);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+}
+
+header h1 {
+  margin-bottom: 1rem;
+  font-size: 2.2rem;
+  text-align: center;
+  background: linear-gradient(45deg, var(--accent-1), var(--accent-2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.card {
+  background: var(--bg-card);
+  border-radius: var(--border-radius);
+  backdrop-filter: blur(12px);
+  padding: 1.5rem;
+  margin: 1rem 0;
+  width: 100%;
+  max-width: 900px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  transition: transform var(--transition-speed);
+}
+
+.card:hover {
+  transform: translateY(-4px);
+}
+
+section h2 {
+  margin-bottom: 0.8rem;
+  font-size: 1.6rem;
+  color: var(--accent-2);
+}
+
+textarea, input[type="number"] {
+  width: 100%;
+  padding: 0.6rem;
+  border: none;
+  border-radius: var(--border-radius);
+  background: var(--bg-glass);
+  color: var(--text-primary);
+  margin-top: 0.4rem;
+  resize: vertical;
+}
+
+button {
+  background: var(--accent-2);
+  color: #fff;
+  border: none;
+  border-radius: var(--border-radius);
+  padding: 0.6rem 1.2rem;
+  margin: 0.3rem;
+  cursor: pointer;
+  transition: background var(--transition-speed);
+}
+
+button:hover {
+  background: var(--accent-1);
+}
+
+.button-row, .control-row, .export-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+
+#chartCanvas {
+  width: 100%;
+  max-width: 800px;
+  height: 300px;
+}
+
+.alg-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.4rem;
+}
+
+.alg-list label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.alg-list input[type="checkbox"] {
+  margin-right: 0.4rem;
+}
+
+.modal {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal.hidden { display: none; }
+
+.modal > div {
+  background: var(--bg-card);
+  padding: 1rem 1.5rem;
+  border-radius: var(--border-radius);
+  backdrop-filter: blur(8px);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+thead th {
+  background: var(--bg-glass);
+  color: var(--accent-1);
+  padding: 0.6rem;
+}
+
+tbody td {
+  padding: 0.5rem;
+  text-align: center;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  header h1 { font-size: 1.8rem; }
+  .card { padding: 1rem; }
+  button { padding: 0.5rem 1rem; }
+}
