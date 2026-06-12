@@ -44,14 +44,37 @@ export function initChart(initialArray) {
 /** Update chart data without animation */
 function updateChart(array) {
   if (!chart) return;
+  // Compute bar colors: highlight elements that changed compared to previous state
+  const prev = chart.__prevArray || [];
+  const current = window.currentIndices || [];
+  const barColors = array.map((val, i) => {
+    if (current.includes(i)) {
+      return getCssVar('--accent-3'); // highlight comparison
+    }
+    const changed = prev[i] !== undefined && prev[i] !== val;
+    return changed ? getCssVar('--accent-1') : getCssVar('--accent-2');
+  });
+  // Reset after use
+  window.currentIndices = [];
+
+  // Update labels to match array length
+  chart.data.labels = array.map((_, i) => i + 1);
   chart.data.datasets[0].data = array;
+  chart.data.datasets[0].backgroundColor = barColors;
   chart.update();
+  // Save current array for next diff
+  chart.__prevArray = array.slice();
 }
 
 /** Run the generator step‑by‑step, respecting the selected speed */
 export function runGenerator(gen, speed, onComplete) {
   animationSpeed = speed;
   function step() {
+    // Respect pause state via window.isPaused flag
+    if (window.isPaused) {
+      setTimeout(step, 200);
+      return;
+    }
     const { value, done } = gen.next();
     if (done) {
       if (onComplete) onComplete();

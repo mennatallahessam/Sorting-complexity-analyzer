@@ -14,7 +14,9 @@ export function* bubbleSort(arr) {
   for (let i = 0; i < n - 1; i++) {
     swapped = false;
     for (let j = 0; j < n - i - 1; j++) {
+      window.currentIndices = [j, j + 1];
       metrics.incrementComparisons();
+      yield copy(a);
       if (a[j] > a[j + 1]) {
         [a[j], a[j + 1]] = [a[j + 1], a[j]];
         metrics.incrementSwaps();
@@ -24,6 +26,7 @@ export function* bubbleSort(arr) {
     }
     if (!swapped) break;
   }
+  console.log('Bubble final array:', a);
   yield copy(a);
 }
 
@@ -34,7 +37,9 @@ export function* selectionSort(arr) {
   for (let i = 0; i < n - 1; i++) {
     let minIdx = i;
     for (let j = i + 1; j < n; j++) {
+      window.currentIndices = [j, minIdx];
       metrics.incrementComparisons();
+      yield copy(a);
       if (a[j] < a[minIdx]) minIdx = j;
     }
     if (minIdx !== i) {
@@ -43,6 +48,7 @@ export function* selectionSort(arr) {
       yield copy(a);
     }
   }
+  console.log('Selection final array:', a);
   yield copy(a);
 }
 
@@ -54,17 +60,23 @@ export function* insertionSort(arr) {
     let key = a[i];
     let j = i - 1;
     while (j >= 0 && a[j] > key) {
+      window.currentIndices = [j, j + 1];
       metrics.incrementComparisons();
+      yield copy(a);
       a[j + 1] = a[j];
       metrics.incrementSwaps();
       j--;
-      yield copy(a);
     }
     // One more comparison when while condition fails
-    if (j >= 0) metrics.incrementComparisons();
+    if (j >= 0) {
+      metrics.incrementComparisons();
+      yield copy(a);
+    }
     a[j + 1] = key;
+    console.log(`Insertion place key at index ${j+1}, value ${key}`);
     yield copy(a);
   }
+  console.log('Insertion final array:', a);
   yield copy(a);
 }
 
@@ -121,10 +133,13 @@ export function* quickSort(arr) {
     const pivot = a[high];
     let i = low - 1;
     for (let j = low; j < high; j++) {
+      window.currentIndices = [j, high];
       metrics.incrementComparisons();
+      yield copy(a);
       if (a[j] < pivot) {
         i++;
         [a[i], a[j]] = [a[j], a[i]];
+        console.log(`Quick swap indices ${i} and ${j}: ${a[i]} ↔ ${a[j]}`);
         metrics.incrementSwaps();
         yield copy(a);
       }
@@ -152,36 +167,40 @@ export function* heapSort(arr) {
   const a = arr.slice();
   const n = a.length;
 
-  function heapify(n, i) {
+  function* heapify(n, i) {
     let largest = i;
     const l = 2 * i + 1;
     const r = 2 * i + 2;
+    window.currentIndices = [i, largest];
     if (l < n) {
       metrics.incrementComparisons();
+      yield copy(a);
       if (a[l] > a[largest]) largest = l;
     }
     if (r < n) {
       metrics.incrementComparisons();
+      yield copy(a);
       if (a[r] > a[largest]) largest = r;
     }
     if (largest !== i) {
       [a[i], a[largest]] = [a[largest], a[i]];
       metrics.incrementSwaps();
-      heapify(n, largest);
+      yield* heapify(n, largest);
     }
   }
 
   // Build heap
   for (let i = Math.floor(n / 2) - 1; i >= 0; i--) {
-    heapify(n, i);
+    yield* heapify(n, i);
   }
   // Extract elements
   for (let i = n - 1; i > 0; i--) {
     [a[0], a[i]] = [a[i], a[0]];
     metrics.incrementSwaps();
     yield copy(a);
-    heapify(i, 0);
+    yield* heapify(i, 0);
   }
+  console.log('Heap final array:', a);
   yield copy(a);
 }
 

@@ -10,6 +10,8 @@
   --text-primary: #e0e0e0;
   --accent-1: #ff6b6b;
   --accent-2: #4ecdc4;
+  --accent-3: #ffa500;
+
   --gradient-start: #1e1e1e;
   --gradient-end: #3a3a3a;
   --border-radius: 12px;
@@ -160,4 +162,168 @@ tbody td {
   header h1 { font-size: 1.8rem; }
   .card { padding: 1rem; }
   button { padding: 0.5rem 1rem; }
+}
+
+/* Leaderboard table styles */
+.table-container {
+  overflow-x: auto;
+  margin-top: 1rem;
+}
+
+.leaderboard-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 8px;
+  margin-top: 0.5rem;
+}
+
+.leaderboard-table th {
+  text-align: left;
+  padding: 0.8rem 1rem;
+  color: var(--accent-2);
+  font-weight: 600;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.05);
+}
+
+.leaderboard-row {
+  background: rgba(255, 255, 255, 0.03);
+  transition: transform 0.2s, background-color 0.2s;
+}
+
+.leaderboard-row:hover {
+  background: rgba(255, 255, 255, 0.06);
+  transform: scale(1.005);
+}
+
+.leaderboard-row td {
+  padding: 1rem;
+  vertical-align: middle;
+  border-top: 1px solid rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.leaderboard-row td:first-child {
+  border-left: 1px solid rgba(255, 255, 255, 0.03);
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+}
+
+.leaderboard-row td:last-child {
+  border-right: 1px solid rgba(255, 255, 255, 0.03);
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+
+.row-first {
+  background: rgba(78, 205, 196, 0.08);
+  border: 1px solid rgba(78, 205, 196, 0.2);
+}
+
+/* Rank badges */
+.rank-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.rank-1 {
+  background: linear-gradient(135deg, #ffd700, #ffa500);
+  color: #000;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+}
+
+.rank-2 {
+  background: linear-gradient(135deg, #c0c0c0, #a9a9a9);
+  color: #000;
+}
+
+.rank-3 {
+  background: linear-gradient(135deg, #cd7f32, #8b5a2b);
+  color: #fff;
+}
+
+.rank-other {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+/* Badges */
+.alg-name-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.alg-name {
+  font-weight: 600;
+}
+
+.badge {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.badge-fastest {
+  background: rgba(46, 204, 113, 0.2);
+  color: #2ecc71;
+  border: 1px solid rgba(46, 204, 113, 0.3);
+}
+
+.badge-slowest {
+  background: rgba(231, 76, 60, 0.2);
+  color: #e74c3c;
+  border: 1px solid rgba(231, 76, 60, 0.3);
+}
+
+/* Visual Performance Bars */
+.time-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 150px;
+}
+
+.time-val {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.perf-bar-container {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.perf-bar {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease-out;
+}
+
+.bar-fastest {
+  background: linear-gradient(90deg, #2ecc71, #27ae60);
+}
+
+.bar-medium {
+  background: linear-gradient(90deg, #3498db, #2980b9);
+}
+
+.bar-slowest {
+  background: linear-gradient(90deg, #e74c3c, #c0392b);
+}
+
+.placeholder-text {
+  color: rgba(255, 255, 255, 0.4);
+  font-style: italic;
+  text-align: center;
+  padding: 2rem 0;
 }

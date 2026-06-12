@@ -5,6 +5,9 @@ import { algorithmsMap } from "./algorithms.js";
 import { metrics, getMetrics } from "./metrics.js";
 import { initChart, runGenerator, exportChartAsPng } from "./visualizer.js";
 
+// Debug log to confirm script execution
+console.log('script.js loaded');
+
 // ---------- UI Elements ----------
 const manualInput = document.getElementById("manualInput");
 const loadFileBtn = document.getElementById("loadFileBtn");
@@ -24,9 +27,12 @@ const resumeBtn = document.getElementById("resumeBtn");
 const summaryContainer = document.getElementById("summaryContainer");
 const exportCsvBtn = document.getElementById("exportCsvBtn");
 const exportPngBtn = document.getElementById("exportPngBtn");
+const currentAlgorithmDiv = document.getElementById("currentAlgorithm");
 
 // ---------- State ----------
 let currentGenerator = null;
+// Track indices currently being compared for highlighting
+window.currentIndices = [];
 let currentTimeoutId = null;
 let isPaused = false;
 let results = [];
@@ -50,20 +56,84 @@ function getSelectedAlgorithms() {
   return Array.from(algList.querySelectorAll("input[type=checkbox]:checked")).map((c) => c.value);
 }
 
-function displayResult(name, metricObj) {
-  const div = document.createElement("div");
-  div.className = "result-card";
-  div.innerHTML = `
-    <strong>${name}</strong><br/>
-    Time: ${metricObj.timeMs.toFixed(2)} ms<br/>
-    Comparisons: ${metricObj.comparisons}<br/>
-    Swaps: ${metricObj.swaps}`;
-  summaryContainer.appendChild(div);
+function renderLeaderboard() {
+  if (results.length === 0) {
+    summaryContainer.innerHTML = "<p class='placeholder-text'>Run algorithms to see the performance leaderboard.</p>";
+    return;
+  }
+
+  // Sort results by timeMs (fastest first)
+  const sorted = [...results].sort((a, b) => a.timeMs - b.timeMs);
+  const maxTime = Math.max(...sorted.map(r => r.timeMs)) || 1;
+
+  let html = `
+    <div class="table-container">
+      <table class="leaderboard-table">
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>Algorithm</th>
+            <th>Time</th>
+            <th>Comparisons</th>
+            <th>Swaps</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
+  sorted.forEach((r, index) => {
+    const rank = index + 1;
+    // Calculate width percentage relative to maxTime
+    const percent = maxTime > 0 ? (r.timeMs / maxTime) * 100 : 0;
+    
+    // Choose performance bar color based on rank / speed
+    let barColorClass = "bar-medium";
+    let badge = "";
+    if (rank === 1) {
+      barColorClass = "bar-fastest";
+      badge = `<span class="badge badge-fastest">🏆 Fastest</span>`;
+    } else if (rank === sorted.length && sorted.length > 1) {
+      barColorClass = "bar-slowest";
+      badge = `<span class="badge badge-slowest">🐢 Slowest</span>`;
+    }
+
+    html += `
+      <tr class="leaderboard-row ${rank === 1 ? 'row-first' : ''}">
+        <td>
+          <div class="rank-circle rank-${rank <= 3 ? rank : 'other'}">${rank}</div>
+        </td>
+        <td>
+          <div class="alg-name-container">
+            <span class="alg-name">${r.name}</span>
+            ${badge}
+          </div>
+        </td>
+        <td>
+          <div class="time-col">
+            <span class="time-val">${r.timeMs.toFixed(2)} ms</span>
+            <div class="perf-bar-container">
+              <div class="perf-bar ${barColorClass}" style="width: ${Math.max(5, percent)}%"></div>
+            </div>
+          </div>
+        </td>
+        <td>${r.comparisons.toLocaleString()}</td>
+        <td>${r.swaps.toLocaleString()}</td>
+      </tr>
+    `;
+  });
+
+  html += `
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  summaryContainer.innerHTML = html;
 }
 
 function resetUI() {
-  summaryContainer.innerHTML = "";
   results = [];
+  renderLeaderboard();
 }
 
 function exportCSV() {
@@ -83,38 +153,22 @@ function exportCSV() {
 // ---------- Core Execution ----------
 async function runAlgorithm(name, array) {
   metrics.reset();
+  // Update displayed algorithm name
+  if (currentAlgorithmDiv) {
+    currentAlgorithmDiv.textContent = `Current algorithm: ${name}`;
+  }
   metrics.start();
   initChart(array);
   const gen = algorithmsMap[name](array);
   const speed = parseInt(speedSelect.value, 10);
 
   return new Promise((resolve) => {
-    function step() {
-      if (isPaused) {
-        currentTimeoutId = setTimeout(step, 200); // poll while paused
-        return;
-      }
-      const { value, done } = gen.next();
-      if (done) {
-        metrics.stop();
-        const m = getMetrics();
-        results.push({ name, ...m });
-        displayResult(name, m);
-        resolve();
-        return;
-      }
-      // Chart update
-      // visualizer.js updateChart is internal; we call runGenerator for consistency
-      // But to keep simple, we reuse runGenerator logic here:
-      // (visualizer.runGenerator will manage its own timeouts, so we delegate)
-      // Instead, use runGenerator:
-    }
-    // Use visualizer's helper to manage animation loop
+    // Use visualizer's runGenerator to step through the algorithm, respecting pause state
     runGenerator(gen, speed, () => {
       metrics.stop();
       const m = getMetrics();
       results.push({ name, ...m });
-      displayResult(name, m);
+      renderLeaderboard();
       resolve();
     });
   });
@@ -130,79 +184,104 @@ async function runAlgorithms(names, baseArray) {
 }
 
 // ---------- Event Handlers ----------
-loadFileBtn.addEventListener("click", () => fileInput.click());
-fileInput.addEventListener("change", (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (ev) => {
-    const content = ev.target.result;
-    const data = parseFileContent(content);
-    manualInput.value = data.join(", ");
+function attachEventHandlers() {
+  loadFileBtn.addEventListener("click", () => fileInput.click());
+  fileInput.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const content = ev.target.result;
+      const data = parseFileContent(content);
+      manualInput.value = data.join(", ");
+    };
+    reader.readAsText(file);
+  });
+
+  generateBtn.addEventListener("click", () => randomOptions.classList.remove("hidden"));
+  closeRandomBtn.addEventListener("click", () => randomOptions.classList.add("hidden"));
+  createRandomBtn.addEventListener("click", () => {
+    const size = parseInt(randSize.value, 10) || 50;
+    const max = parseInt(randMax.value, 10) || 999;
+    const arr = generateRandomArray(size, max);
+    manualInput.value = arr.join(", ");
+    randomOptions.classList.add("hidden");
+  });
+
+  runSelectedBtn.addEventListener("click", () => {
+    const selected = getSelectedAlgorithms();
+    if (selected.length === 0) return alert("Select at least one algorithm.");
+    const raw = manualInput.value;
+    const baseArray = parseInput(raw);
+    if (baseArray.length === 0) return alert("Provide a non‑empty dataset.");
+    runAlgorithms(selected, baseArray);
+  });
+
+  runAllBtn.addEventListener("click", () => {
+    const all = Object.keys(algorithmsMap);
+    const raw = manualInput.value;
+    const baseArray = parseInput(raw);
+    if (baseArray.length === 0) return alert("Provide a non‑empty dataset.");
+    runAlgorithms(all, baseArray);
+  });
+
+  pauseBtn.addEventListener("click", () => {
+    isPaused = true;
+    window.isPaused = true;
+    pauseBtn.classList.add("hidden");
+    resumeBtn.classList.remove("hidden");
+  });
+
+  resumeBtn.addEventListener("click", () => {
+    isPaused = false;
+    window.isPaused = false;
+    resumeBtn.classList.add("hidden");
+    pauseBtn.classList.remove("hidden");
+  });
+
+  exportCsvBtn.addEventListener("click", exportCSV);
+  exportPngBtn.addEventListener("click", () => exportChartAsPng());
+}
+
+// Initialize UI
+function init() {
+  // Clear any existing elements in checkboxes to prevent duplicates
+  if (algList) {
+    algList.innerHTML = "";
+  }
+  populateAlgorithmCheckboxes();
+  attachEventHandlers();
+
+  // Ensure Chart.js is loaded
+  if (typeof Chart === "undefined") {
+    console.error("Chart.js library not loaded. Ensure the CDN script is included before module scripts.");
+  }
+
+  // Theoretical complexity table population
+  const complexityData = {
+    "Bubble Sort": ["O(n)", "O(n²)", "O(n²)", "O(1)"],
+    "Selection Sort": ["O(n²)", "O(n²)", "O(n²)", "O(1)"],
+    "Insertion Sort": ["O(n)", "O(n²)", "O(n²)", "O(1)"],
+    "Merge Sort": ["O(n log n)", "O(n log n)", "O(n log n)", "O(n)"],
+    "Quick Sort": ["O(n log n)", "O(n log n)", "O(n²)", "O(log n)"],
+    "Heap Sort": ["O(n log n)", "O(n log n)", "O(n log n)", "O(1)"],
+    "Counting Sort": ["O(n + k)", "O(n + k)", "O(n + k)", "O(k)"],
+    "Radix Sort": ["O(nk)", "O(nk)", "O(nk)", "O(n + k)"],
   };
-  reader.readAsText(file);
-});
 
-generateBtn.addEventListener("click", () => randomOptions.classList.remove("hidden"));
-closeRandomBtn.addEventListener("click", () => randomOptions.classList.add("hidden"));
-createRandomBtn.addEventListener("click", () => {
-  const size = parseInt(randSize.value, 10) || 50;
-  const max = parseInt(randMax.value, 10) || 999;
-  const arr = generateRandomArray(size, max);
-  manualInput.value = arr.join(", ");
-  randomOptions.classList.add("hidden");
-});
+  const tbody = document.querySelector("#complexityTable tbody");
+  if (tbody) {
+    tbody.innerHTML = "";
+    Object.entries(complexityData).forEach(([alg, comps]) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${alg}</td><td>${comps[0]}</td><td>${comps[1]}</td><td>${comps[2]}</td><td>${comps[3]}</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+}
 
-runSelectedBtn.addEventListener("click", () => {
-  const selected = getSelectedAlgorithms();
-  if (selected.length === 0) return alert("Select at least one algorithm.");
-  const raw = manualInput.value;
-  const baseArray = parseInput(raw);
-  if (baseArray.length === 0) return alert("Provide a non‑empty dataset.");
-  runAlgorithms(selected, baseArray);
-});
-
-runAllBtn.addEventListener("click", () => {
-  const all = Object.keys(algorithmsMap);
-  const raw = manualInput.value;
-  const baseArray = parseInput(raw);
-  if (baseArray.length === 0) return alert("Provide a non‑empty dataset.");
-  runAlgorithms(all, baseArray);
-});
-
-pauseBtn.addEventListener("click", () => {
-  isPaused = true;
-  pauseBtn.classList.add("hidden");
-  resumeBtn.classList.remove("hidden");
-});
-
-resumeBtn.addEventListener("click", () => {
-  isPaused = false;
-  resumeBtn.classList.add("hidden");
-  pauseBtn.classList.remove("hidden");
-});
-
-exportCsvBtn.addEventListener("click", exportCSV);
-exportPngBtn.addEventListener("click", () => exportChartAsPng());
-
-// Initialize UI on load
-populateAlgorithmCheckboxes();
-
-// Theoretical complexity table population
-const complexityData = {
-  "Bubble Sort": ["O(n)", "O(n²)", "O(n²)", "O(1)"],
-  "Selection Sort": ["O(n²)", "O(n²)", "O(n²)", "O(1)"],
-  "Insertion Sort": ["O(n)", "O(n²)", "O(n²)", "O(1)"],
-  "Merge Sort": ["O(n log n)", "O(n log n)", "O(n log n)", "O(n)"],
-  "Quick Sort": ["O(n log n)", "O(n log n)", "O(n²)", "O(log n)"],
-  "Heap Sort": ["O(n log n)", "O(n log n)", "O(n log n)", "O(1)"],
-  "Counting Sort": ["O(n + k)", "O(n + k)", "O(n + k)", "O(k)"],
-  "Radix Sort": ["O(nk)", "O(nk)", "O(nk)", "O(n + k)"],
-};
-
-const tbody = document.querySelector("#complexityTable tbody");
-Object.entries(complexityData).forEach(([alg, comps]) => {
-  const tr = document.createElement("tr");
-  tr.innerHTML = `<td>${alg}</td><td>${comps[0]}</td><td>${comps[1]}</td><td>${comps[2]}</td><td>${comps[3]}</td>`;
-  tbody.appendChild(tr);
-});
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", init);
+} else {
+  init();
+}
