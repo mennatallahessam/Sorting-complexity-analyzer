@@ -1,0 +1,27 @@
+{
+  "name": "sorting-complexity-analyzer",
+  "version": "1.0.0",
+  "description": "A premium, interactive web-based sorting visualizer and performance benchmarking platform. Built with **Vue 3** (CDN) and **Chart.js**, it lets you visualize 8 classic sorting algorithms step-by-step in real time, compare their performance on identical datasets, and export results.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mennatallahessam/Sorting-complexity-analyzer.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/mennatallahessam/Sorting-complexity-analyzer/issues"
+  },
+  "homepage": "https://github.com/mennatallahessam/Sorting-complexity-analyzer#readme",
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "cors": "^2.8.6",
+    "express": "^5.3.0"
+  }
+}

@@ -8,9 +8,7 @@
   <title>Sorting Complexity Analyzer</title>
   <meta name="description" content="Visualize and compare sorting algorithm performance in real-time with animated bar charts, complexity tables, and leaderboard rankings." />
   <link rel="stylesheet" href="styles.css" />
-  <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <!-- Vue 3 CDN -->
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 </head>
 
@@ -21,6 +19,8 @@
     <header>
       <h1>Sorting Complexity Analyzer</h1>
       <p class="header-sub">Real-time visualization &amp; performance benchmarking for 8 sorting algorithms</p>
+      <div v-if="backendOnline" class="backend-badge online">● Backend connected</div>
+      <div v-else class="backend-badge offline">○ Offline mode</div>
     </header>
 
     <!-- ── Dataset Input ──────────────────────────────────────── -->
@@ -95,63 +95,166 @@
             <option :value="1000">Slow</option>
           </select>
         </label>
+        <!-- Save status indicator -->
+        <span v-if="saveStatus === 'saving'" class="save-status saving">💾 Saving…</span>
+        <span v-else-if="saveStatus === 'saved'" class="save-status saved">✅ Saved to history</span>
+        <span v-else-if="saveStatus === 'error'" class="save-status error">⚠️ Save failed</span>
       </div>
     </section>
 
-    <!-- ── Performance Leaderboard ────────────────────────────── -->
-    <section class="summary-section card">
-      <h2>🏆 Performance Summary</h2>
-      <p v-if="results.length === 0" class="placeholder-text">
-        Run algorithms to see the performance leaderboard.
-      </p>
-      <div v-else class="table-container">
-        <table class="leaderboard-table">
-          <thead>
-            <tr>
-              <th>Rank</th>
-              <th>Algorithm</th>
-              <th>Time (ms)</th>
-              <th>Comparisons</th>
-              <th>Swaps</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="(r, index) in sortedResults"
-              :key="r.name"
-              class="leaderboard-row"
-              :class="{ 'row-first': index === 0 }"
-            >
-              <td>
-                <div class="rank-circle" :class="rankClass(index + 1)">{{ index + 1 }}</div>
-              </td>
-              <td>
-                <div class="alg-name-container">
-                  <span class="alg-name">{{ r.name }}</span>
-                  <span v-if="index === 0" class="badge badge-fastest">🏆 Fastest</span>
-                  <span
-                    v-else-if="index === sortedResults.length - 1 && sortedResults.length > 1"
-                    class="badge badge-slowest"
-                  >🐢 Slowest</span>
-                </div>
-              </td>
-              <td>
-                <div class="time-col">
-                  <span class="time-val">{{ r.timeMs.toFixed(2) }} ms</span>
-                  <div class="perf-bar-container">
-                    <div
-                      class="perf-bar"
-                      :class="barClass(index, sortedResults.length)"
-                      :style="{ width: barWidth(r.timeMs) + '%' }"
-                    ></div>
+    <!-- ── Results Tabs: Session / History / Stats ─────────────── -->
+    <section class="results-section card">
+      <div class="tabs">
+        <button
+          class="tab-btn"
+          :class="{ active: historyTab === 'session' }"
+          @click="historyTab = 'session'"
+        >🏆 This Run</button>
+        <button
+          class="tab-btn"
+          :class="{ active: historyTab === 'history' }"
+          @click="historyTab = 'history'"
+          :disabled="!backendOnline"
+        >📜 History</button>
+        <button
+          class="tab-btn"
+          :class="{ active: historyTab === 'stats' }"
+          @click="historyTab = 'stats'"
+          :disabled="!backendOnline"
+        >📈 Global Stats</button>
+      </div>
+
+      <!-- ── Tab: This Run ──────────────────────────────────────── -->
+      <div v-if="historyTab === 'session'">
+        <p v-if="results.length === 0" class="placeholder-text">
+          Run algorithms to see the performance leaderboard.
+        </p>
+        <div v-else class="table-container">
+          <table class="leaderboard-table">
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Algorithm</th>
+                <th>Time (ms)</th>
+                <th>Comparisons</th>
+                <th>Swaps</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="(r, index) in sortedResults"
+                :key="r.name"
+                class="leaderboard-row"
+                :class="{ 'row-first': index === 0 }"
+              >
+                <td><div class="rank-circle" :class="rankClass(index + 1)">{{ index + 1 }}</div></td>
+                <td>
+                  <div class="alg-name-container">
+                    <span class="alg-name">{{ r.name }}</span>
+                    <span v-if="index === 0" class="badge badge-fastest">🏆 Fastest</span>
+                    <span v-else-if="index === sortedResults.length - 1 && sortedResults.length > 1" class="badge badge-slowest">🐢 Slowest</span>
                   </div>
-                </div>
-              </td>
-              <td>{{ r.comparisons.toLocaleString() }}</td>
-              <td>{{ r.swaps.toLocaleString() }}</td>
-            </tr>
-          </tbody>
-        </table>
+                </td>
+                <td>
+                  <div class="time-col">
+                    <span class="time-val">{{ r.timeMs.toFixed(2) }} ms</span>
+                    <div class="perf-bar-container">
+                      <div class="perf-bar" :class="barClass(index, sortedResults.length)" :style="{ width: barWidth(r.timeMs) + '%' }"></div>
+                    </div>
+                  </div>
+                </td>
+                <td>{{ r.comparisons.toLocaleString() }}</td>
+                <td>{{ r.swaps.toLocaleString() }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="export-row" v-if="results.length > 0">
+          <button id="exportCsvBtn" @click="exportCSV">📥 Export CSV</button>
+          <button id="exportPngBtn" @click="exportPng">🖼️ Export PNG</button>
+        </div>
+      </div>
+
+      <!-- ── Tab: History ───────────────────────────────────────── -->
+      <div v-if="historyTab === 'history'">
+        <div v-if="groupedHistory.length === 0" class="placeholder-text">
+          No saved runs yet. Run some algorithms and results will be saved here automatically.
+        </div>
+        <div v-else>
+          <div class="history-header">
+            <span class="history-count">{{ history.length }} result{{ history.length !== 1 ? 's' : '' }} across {{ groupedHistory.length }} session{{ groupedHistory.length !== 1 ? 's' : '' }}</span>
+            <button class="btn-danger" @click="clearAllHistory">🗑️ Clear All</button>
+          </div>
+          <div v-for="group in groupedHistory" :key="group.session_id" class="history-group">
+            <div class="history-group-header">
+              <span class="history-date">🕐 {{ formatDate(group.date) }}</span>
+              <span class="history-size">{{ group.rows[0]?.array_size }} elements</span>
+            </div>
+            <table class="leaderboard-table history-table">
+              <thead>
+                <tr>
+                  <th>Algorithm</th>
+                  <th>Time (ms)</th>
+                  <th>Comparisons</th>
+                  <th>Swaps</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(row, i) in group.rows" :key="row.id" class="leaderboard-row" :class="{ 'row-first': i === 0 }">
+                  <td>
+                    <div class="alg-name-container">
+                      <span class="alg-name">{{ row.algorithm }}</span>
+                      <span v-if="i === 0" class="badge badge-fastest">🏆</span>
+                    </div>
+                  </td>
+                  <td><span class="time-val">{{ row.time_ms.toFixed(2) }} ms</span></td>
+                  <td>{{ row.comparisons.toLocaleString() }}</td>
+                  <td>{{ row.swaps.toLocaleString() }}</td>
+                  <td>
+                    <button class="btn-icon-delete" @click="deleteHistoryRun(row.id)" title="Delete">✕</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Tab: Global Stats ──────────────────────────────────── -->
+      <div v-if="historyTab === 'stats'">
+        <div v-if="globalStats.length === 0" class="placeholder-text">
+          No stats yet. Run some algorithms first.
+        </div>
+        <div v-else class="table-container">
+          <table class="leaderboard-table">
+            <thead>
+              <tr>
+                <th>Algorithm</th>
+                <th>Runs</th>
+                <th>Avg Time (ms)</th>
+                <th>Best Time (ms)</th>
+                <th>Total Comparisons</th>
+                <th>Total Swaps</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(s, i) in globalStats" :key="s.algorithm" class="leaderboard-row" :class="{ 'row-first': i === 0 }">
+                <td>
+                  <div class="alg-name-container">
+                    <div class="rank-circle" :class="rankClass(i + 1)">{{ i + 1 }}</div>
+                    <span class="alg-name">{{ s.algorithm }}</span>
+                  </div>
+                </td>
+                <td>{{ s.total_runs }}</td>
+                <td><span class="time-val">{{ s.avg_time_ms }} ms</span></td>
+                <td><span class="time-val">{{ s.best_time_ms.toFixed(2) }} ms</span></td>
+                <td>{{ s.total_comparisons.toLocaleString() }}</td>
+                <td>{{ s.total_swaps.toLocaleString() }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </section>
 
@@ -179,10 +282,6 @@
             </tr>
           </tbody>
         </table>
-      </div>
-      <div class="export-row">
-        <button id="exportCsvBtn" @click="exportCSV">📥 Export CSV</button>
-        <button id="exportPngBtn" @click="exportPng">🖼️ Export PNG</button>
       </div>
     </section>
 
