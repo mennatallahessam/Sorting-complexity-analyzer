@@ -4,6 +4,14 @@ A premium, interactive web-based sorting visualizer and performance benchmarking
 
 ---
 
+## 🚀 Live Demo
+
+[![Live on Render](https://img.shields.io/badge/Live%20Demo-Render-46E3B7?style=for-the-badge&logo=render&logoColor=white)](https://sorting-complexity-analyzer-1.onrender.com)
+
+🔗 **[https://sorting-complexity-analyzer-1.onrender.com](https://sorting-complexity-analyzer-1.onrender.com)**
+
+---
+
 ## 🖥️ Live Preview
 
 ### Dashboard — Landing State
